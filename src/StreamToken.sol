@@ -9,15 +9,14 @@ import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 /// todo -> Create engine to handle minting of STRK to qualified addresses. This will be done once the team agrees on full functionality of STRK
 
 contract StreamToken is ERC20, Ownable {
+    // >---------------------------> ERRORS
     error StreamToken__NotGuardian();
     error StreamToken__MustBeMoreThanZero();
 
+    // >---------------------------> STATE VARIABLES
     address public guardian;
 
-    constructor(address _guardian) ERC20("Stream Token", "STRK") Ownable(msg.sender) {
-        guardian = _guardian;
-    }
-
+    // >---------------------------> MODIFIERS
     modifier onlyGuardian() {
         if (msg.sender != guardian) {
             revert StreamToken__NotGuardian();
@@ -40,6 +39,12 @@ contract StreamToken is ERC20, Ownable {
     //     _;
     // }
 
+    // >---------------------------> CONSTRUCTOR
+    constructor(address _guardian) ERC20("Stream Token", "STRK") Ownable(msg.sender) {
+        guardian = _guardian;
+    }
+
+    // >---------------------------> EXTERNAL FUNCTIONS
     function mint(address receiver, uint256 amount) external onlyGuardian mustBeMoreThanZero(amount) {
         _mint(receiver, amount);
     }
