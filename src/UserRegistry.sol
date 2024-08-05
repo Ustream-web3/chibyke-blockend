@@ -11,10 +11,9 @@ contract UserRegistry {
         string userName;
         string profileImgUri; // Will have to figure out a way to do this. Can there be a way for us to get the profileImgUri onchain if the profileImg is not an NFT?
     }
+
     // >---------------------------> STATE VARIABLES
-
     uint256 profileCount;
-
     mapping(address => Profile) private s_profiles;
     mapping(address => bool) private s_profileCreated;
 
