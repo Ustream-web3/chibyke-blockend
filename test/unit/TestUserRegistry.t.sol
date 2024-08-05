@@ -9,14 +9,14 @@ contract TestUserRegistry is Test {
 
     address user = makeAddr("user");
 
-    function setUp() public {
+    function setUp() external {
         registry = new UserRegistry();
     }
 
     function testCanCreateUserProfile() public {
         vm.startPrank(user);
 
-        // Arrange 
+        // Arrange
         string memory userName = "Chibyke";
         string memory profileImgUri = "ipfs://cutePuppyNFT";
 
@@ -59,7 +59,7 @@ contract TestUserRegistry is Test {
     function testRevertIfUserAlreadyExists() public {
         vm.startPrank(user);
 
-        // Arrange 
+        // Arrange
         string memory userName = "Chibyke";
         string memory profileImgUri = "ipfs://cutePuppyNFT";
 
@@ -83,9 +83,9 @@ contract TestUserRegistry is Test {
     }
 
     function testRevertIfUserTriesToCreateASecondProfileWithDifferentDetails() public {
-         vm.startPrank(user);
+        vm.startPrank(user);
 
-        // Arrange 
+        // Arrange
         string memory userName = "Chibyke";
         string memory profileImgUri = "ipfs://cutePuppyNFT";
         string memory newUserName = "Proper";
@@ -113,7 +113,7 @@ contract TestUserRegistry is Test {
     function testCanGetProfileCount() public {
         vm.startPrank(user);
 
-        // Arrange 
+        // Arrange
         string memory userName = "Chibyke";
         string memory profileImgUri = "ipfs://cutePuppyNFT";
 
