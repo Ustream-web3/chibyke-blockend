@@ -7,6 +7,7 @@ import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 contract CreatorRegistry is Ownable {
     // >---------------------------> ERRORS
     error CreatorRegistry__CreatorAlreadyApproved();
+    error CreatorRegistry__NotTheAdmin();
 
     // >---------------------------> TYPE DECLARATIONS
     struct CreatorProfile {
@@ -15,21 +16,47 @@ contract CreatorRegistry is Ownable {
     }
 
     // >---------------------------> STATE VARIABLES
+    address private s_admin;
     uint256 creatorCount;
     mapping(address => CreatorProfile) private s_creators;
-    mapping(address => bool) private s_creatorApproved;
+    mapping(address => bool) private s_creatorsApproved;
 
     // >---------------------------> EVENTS
     event CreatorAdded(address indexed creator, uint256 indexed creatorId);
 
     // >---------------------------> MODIFIERS
     modifier creatorAlreadyAdded(address creator, uint256 creatorId) {
-        if (s_creatorApproved[creator]) {
+        if (s_creatorsApproved[creator]) {
             revert CreatorRegistry__CreatorAlreadyApproved();
-            _;
         }
+        _;
+    }
+
+    modifier onlyAdmin() {
+        if (msg.sender != s_admin) {
+            revert CreatorRegistry__NotTheAdmin();
+        }
+        _;
     }
 
     // >---------------------------> CONSTRUCTOR
-    constructor() Ownable(msg.sender) {}
+    constructor() Ownable(msg.sender) {
+        s_admin = msg.sender;
+    }
+
+    // >---------------------------> EXTERNAL FUNCTIONS
+    function addCreator(address creator, uint256 creatorId)
+        external
+        creatorAlreadyAdded(creator, creatorId)
+        onlyAdmin
+    {
+        s_creators[creator] = CreatorProfile(creator, creatorId);
+        s_creatorsApproved[creator] = true;
+
+        emit CreatorAdded(creator, creatorId);
+
+        creatorCount++;
+    }
+
+    function removeCreator() external {}
 }
