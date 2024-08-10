@@ -14,3 +14,5 @@ Creator sign-up flow:
 >> Creator visits website and fills up sign-up form (off-chain) >> Upon successful approval, they are issued a creatorId >> they visit dApp and create their profile using just the issued creatorId >> smart contract adds the address of whichever calls the createProfile function to the protocol
 
 For now, I will design the smart contract such that only members of the team can add creators. Creators will fill an off-chain form with required details, one of which is their wallet address. After approval, a member of the team adds the address and an off-chain generated creatorId to the protocol. Only these creatorAddresses can add content (will still need to think this through).
+
+In the functions to suspend and remove creators in the CreatorRegistry contract, I should add modifier that utilizes a keccakk256 to ensure that addresses and creatorId match. Should work. Right?
