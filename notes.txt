@@ -1,0 +1,16 @@
+Pseudocode
+
+CreatorProfile Struct
+
+Function that creators call to be registered --> createCreatorProfile
+Perhaps, I should create a Content.sol smart contract that inherits the CreatorRegistry contract. In this new contract, creators will add their content to the UStream platform by calling a addContent function
+Should it be possible for an admin to be able to addContent on behalf of creators?
+For the adding(uploading) of content, I have an idea:
+Creators upload their content off-chain, this is to enable necessary checks to be performed by the UStream team. Approved content are issued a code which is inputted as a parameter in the addContent function
+If this is the case, perhaps only admin should be able to addContent
+Perhaps the Content.sol should import Ownable from OpenZeppelin for more security in admin privilegdes
+
+Creator sign-up flow:
+>> Creator visits website and fills up sign-up form (off-chain) >> Upon successful approval, they are issued a creatorId >> they visit dApp and create their profile using just the issued creatorId >> smart contract adds the address of whichever calls the createProfile function to the protocol
+
+For now, I will design the smart contract such that only members of the team can add creators. Creators will fill an off-chain form with required details, one of which is their wallet address. After approval, a member of the team adds the address and an off-chain generated creatorId to the protocol. Only these creatorAddresses can add content (will still need to think this through).
