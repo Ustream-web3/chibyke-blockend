@@ -8,36 +8,76 @@ contract CreatorRegistry is Ownable {
     // >---------------------------> ERRORS
     error CreatorRegistry__NotTheAdmin();
     error CreatorRegistry__CreatorAlreadyAdded();
+    error CreatorRegistry__CreatorDoesNotExist();
     error CreatorRegistry__CreatorAlreadySuspended();
     error CreatorRegistry__CreatorAlreadyRemoved();
 
     // >---------------------------> TYPE DECLARATIONS
-    struct CreatorProfile {
+    struct AddedCreator {
+        address creator;
+        uint256 creatorId;
+    }
+
+    struct SuspendedCreator {
+        address creator;
+        uint256 creatorId;
+    }
+
+    struct RemovedCreator {
         address creator;
         uint256 creatorId;
     }
 
     // >---------------------------> STATE VARIABLES
     address private s_admin;
-    uint256 creatorCount;
-    mapping(address => CreatorProfile) private s_creators;
-    mapping(address => bool) private s_creatorsApproved;
+    uint256 private s_creatorCount;
+
+    mapping(address => AddedCreator) private s_addedCreators;
+    mapping(address => SuspendedCreator) private s_suspendedCreators;
+    mapping(address => RemovedCreator) private s_removedCreators;
+
+    mapping(address => bool) private s_isAddedCreator;
+    mapping(uint256 => bool) private s_isAddedCreatorId;
 
     mapping(address => uint256) private s_creatorToCreatorId;
     mapping(uint256 => address) private s_creatorIdToCreator;
 
-    address[] private s_suspendedCreators;
-    address[] private s_removedCreators;
+    mapping(address => bool) private s_isSuspendedCreator;
+    mapping(uint256 => bool) private s_isSuspendedCreatorId;
+
+    mapping(address => bool) private s_isRemovedCreator;
+    mapping(uint256 => bool) private s_isRemovedCreatorId;
 
     // >---------------------------> EVENTS
-    event CreatorAdded(address indexed creator, uint256 indexed creatorId);
-    event CreatorSuspended(address indexed creator, uint256 indexed creatorId);
-    event CreatorRemoved(address indexed creator, uint256 indexed creatorId);
+    event CreatorAdded(address indexed creator, uint256 indexed creatorId, address indexed adminThatAddedCreator);
+    event CreatorSuspended(address indexed creator, uint256 indexed creatorId, address indexed adminThatSuspendedCreator);
+    event CreatorRemoved(address indexed creator, uint256 indexed creatorId, address indexed adminThatRemovedCreator);
 
     // >---------------------------> MODIFIERS
-    modifier creatorAlreadyAdded(address creator, uint256 creatorId) {
-        if (s_creatorsApproved[creator]) {
+    modifier alreadyAdded(address creator, uint256 creatorId) {
+        if (s_isAddedCreator[creator] && s_isAddedCreatorId[creatorId]) {
             revert CreatorRegistry__CreatorAlreadyAdded();
+        }
+        _;
+    }
+
+    modifier alreadyExists(address creator, uint256 creatorId) {
+        if (!s_isAddedCreator[creator] && !s_isAddedCreatorId[creatorId]) {
+            revert CreatorRegistry__CreatorDoesNotExist();
+        }
+        _;
+    }
+
+    modifier notAlreadySuspended(address creator, uint256 creatorId) {
+        if (s_isSuspendedCreator[creator] && s_isSuspendedCreatorId[creatorId]) {
+            revert CreatorRegistry__CreatorAlreadySuspended();
+        }
+        _;
+    }
+
+    modifier notAlreadyRemoved(address creator, uint256 creatorId) {
+        if (s_isRemovedCreator[creator] && s_isRemovedCreatorId[creatorId]) {
+            revert CreatorRegistry__CreatorAlreadyRemoved();
         }
         _;
     }
@@ -55,23 +95,37 @@ contract CreatorRegistry is Ownable {
     }
 
     // >---------------------------> EXTERNAL FUNCTIONS
-    function addCreator(address creator, uint256 creatorId)
-        external
-        creatorAlreadyAdded(creator, creatorId)
-        onlyAdmin
-    {
-        s_creators[creator] = CreatorProfile(creator, creatorId);
-        s_creatorsApproved[creator] = true;
+    function addCreator(address creator, uint256 creatorId) external alreadyAdded(creator, creatorId) onlyAdmin {
+        s_addedCreators[creator] = AddedCreator(creator, creatorId);
+        s_isAddedCreator[creator] = true;
+        s_isAddedCreatorId[creatorId] = true;
 
-        emit CreatorAdded(creator, creatorId);
+        emit CreatorAdded(creator, creatorId, msg.sender);
 
-        creatorCount++;
+        s_creatorCount++;
     }
 
     /**
      * @notice This function will suspend the creator with the inputted address and creatorId
      */
-    function suspendCreator() external onlyAdmin {}
+    function suspendCreator(address creator, uint256 creatorId)
+        external
+        onlyAdmin
+        alreadyExists(creator, creatorId)
+        notAlreadySuspended(creator, creatorId)
+    {
+        // I should add a check that ensures that the inputted pair of address and id actually match. Can a keccakk do this?
+
+        // remove from added creators
+        delete s_addedCreators[creator];
+
+        // add to suspended creators
+        s_suspendedCreators[creator] = SuspendedCreator(creator, creatorId);
+
+        emit CreatorSuspended(creator, creatorId, msg.sender);
+
+        s_creatorCount--;
+    }
 
     /**
      * @notice This function will remove the creator with the inputted address and creatorId
