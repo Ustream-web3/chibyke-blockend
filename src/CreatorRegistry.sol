@@ -26,7 +26,7 @@ contract CreatorRegistry is Ownable {
     struct RemovedCreator {
         address creator;
         uint256 creatorId;
-    }
+    } // since the creator (and accompanying creatorId will be totally removed from the protocol, is there any need for this struct?)
 
     // >---------------------------> STATE VARIABLES
     address private s_admin;
@@ -50,7 +50,9 @@ contract CreatorRegistry is Ownable {
 
     // >---------------------------> EVENTS
     event CreatorAdded(address indexed creator, uint256 indexed creatorId, address indexed adminThatAddedCreator);
-    event CreatorSuspended(address indexed creator, uint256 indexed creatorId, address indexed adminThatSuspendedCreator);
+    event CreatorSuspended(
+        address indexed creator, uint256 indexed creatorId, address indexed adminThatSuspendedCreator
+    );
     event CreatorRemoved(address indexed creator, uint256 indexed creatorId, address indexed adminThatRemovedCreator);
 
     // >---------------------------> MODIFIERS
@@ -92,10 +94,11 @@ contract CreatorRegistry is Ownable {
     // >---------------------------> CONSTRUCTOR
     constructor() Ownable(msg.sender) {
         s_admin = msg.sender;
+        s_creatorCount = 0;
     }
 
     // >---------------------------> EXTERNAL FUNCTIONS
-    function addCreator(address creator, uint256 creatorId) external alreadyAdded(creator, creatorId) onlyAdmin {
+    function addCreator(address creator, uint256 creatorId) external onlyAdmin alreadyAdded(creator, creatorId) {
         s_addedCreators[creator] = AddedCreator(creator, creatorId);
         s_isAddedCreator[creator] = true;
         s_isAddedCreatorId[creatorId] = true;
@@ -119,9 +122,13 @@ contract CreatorRegistry is Ownable {
 
         // remove from added creators
         delete s_addedCreators[creator];
+        delete s_isAddedCreator[creator];
+        delete s_isAddedCreatorId[creatorId];
 
         // add to suspended creators
         s_suspendedCreators[creator] = SuspendedCreator(creator, creatorId);
+        s_isSuspendedCreator[creator] = true;
+        s_isSuspendedCreatorId[creatorId] = true;
 
         emit CreatorSuspended(creator, creatorId, msg.sender);
 
@@ -131,22 +138,44 @@ contract CreatorRegistry is Ownable {
     /**
      * @notice This function will remove the creator with the inputted address and creatorId
      */
-    function removeCreator() external onlyAdmin {}
+    function removeCreator(address creator, uint256 creatorId)
+        external
+        onlyAdmin
+        alreadyExists(creator, creatorId)
+        notAlreadyRemoved(creator, creatorId)
+    {
+        // Remove from added creators
+        delete s_addedCreators[creator];
+        delete s_isAddedCreator[creator];
+        delete s_isAddedCreatorId[creatorId];
+
+        // Mark as removed
+        s_removedCreators[creator] = RemovedCreator(creator, creatorId);
+        s_isRemovedCreator[creator] = true;
+        s_isRemovedCreatorId[creatorId] = true;
+    }
 
     // >---------------------------> EXTERNAL VIEW FUNCTIONS
 
     /**
      * @notice this function will return the creator address of the inputted creatorId
      */
-    function getCreator(uint256 creatorId) public view returns (address) {}
+    function getCreator(uint256 creatorId) public view returns (address) {
+        return s_creatorIdToCreator[creatorId];
+    }
 
     /**
      * @notice This function will return the creatorId of the inputted creator address
      */
-    function getCreatorId(address creator) public view returns (uint256) {}
+    function getCreatorId(address creator) public view returns (uint256) {
+        return s_creatorToCreatorId[creator];
+    }
 
-    function getAdmin() public view returns(address) {}
+    function getAdmin() public view returns (address) {
+        return s_admin;
+    }
 
-    function getCurrentCreatorCount() public view returns(uint256) {}
-    
+    function getCurrentCreatorCount() public view returns (uint256) {
+        return s_creatorCount;
+    }
 }
