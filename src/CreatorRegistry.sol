@@ -155,7 +155,7 @@ contract CreatorRegistry is Ownable {
         s_isRemovedCreatorId[creatorId] = true;
     }
 
-    // >---------------------------> EXTERNAL VIEW FUNCTIONS
+    // >---------------------------> PUBLIC VIEW FUNCTIONS
 
     /**
      * @notice this function will return the creator address of the inputted creatorId
