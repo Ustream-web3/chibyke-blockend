@@ -113,6 +113,7 @@ contract CreatorRegistry is Ownable {
         onlyAdmin
         alreadyExists(creator, creatorId)
         notAlreadySuspended(creator, creatorId)
+        notAlreadyRemoved(creator, creatorId)
     {
         // I should add a check that ensures that the inputted pair of address and id actually match. Can a keccakk do this?
 
@@ -137,10 +138,15 @@ contract CreatorRegistry is Ownable {
     /**
      * @notice this function will return the creator address of the inputted creatorId
      */
-    function getAddedCreator(uint256 creatorId) external view returns (address) {}
+    function getCreator(uint256 creatorId) public view returns (address) {}
 
     /**
      * @notice This function will return the creatorId of the inputted creator address
      */
-    function getAddedCreatorId(address creator) external view returns (uint256) {}
+    function getCreatorId(address creator) public view returns (uint256) {}
+
+    function getAdmin() public view returns(address) {}
+
+    function getCurrentCreatorCount() public view returns(uint256) {}
+    
 }
