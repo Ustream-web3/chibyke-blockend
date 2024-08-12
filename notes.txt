@@ -16,3 +16,8 @@ Creator sign-up flow:
 For now, I will design the smart contract such that only members of the team can add creators. Creators will fill an off-chain form with required details, one of which is their wallet address. After approval, a member of the team adds the address and an off-chain generated creatorId to the protocol. Only these creatorAddresses can add content (will still need to think this through).
 
 In the functions to suspend and remove creators in the CreatorRegistry contract, I should add modifier that utilizes a keccakk256 to ensure that addresses and creatorId match. Should work. Right?
+
+------------>>>>>>>--------->>>>>>------------->>>>>>>>>>>>>>---------------
+
+I need to add functions that admins can call to remove/suspend users in the UserRegistry contract. I am also thinking of removing the `select pfp` feature. It should be totally handled off-chain. If I do this, then there should be no need for a Struct declaration. Right? I need to think deeply.
+Will write tests later for the CreatorRegistry as is. Or perhaps, I should wait till I implement merkle trees in that contract. Most likely.
