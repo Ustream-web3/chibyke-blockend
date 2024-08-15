@@ -64,11 +64,11 @@ contract Draft is Ownable {
         return i_merkleRoot;
     }
 
-    function getCreatorCount() external view returns(uint256) {
+    function getCreatorCount() external view returns (uint256) {
         return s_creatorCount;
     }
 
-    function getAdmin() external view returns(address) {
+    function getAdmin() external view returns (address) {
         return s_admin;
     }
 }
