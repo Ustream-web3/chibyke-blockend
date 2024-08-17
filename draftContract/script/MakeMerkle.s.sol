@@ -29,7 +29,7 @@ contract MakeMerkle is Script, ScriptHelper {
     string private outputPath = "/script/target/output.json";
 
     string private elements = vm.readFile(string.concat(vm.projectRoot(), inputPath)); // get the absolute path
-    string[] private types = elements.readStringArray(".types"); // gets the merkle tree leaf types from json using forge standard lib cheatcode
+    string private types = elements.readString(".types"); // gets the merkle tree leaf type from json using forge standard lib cheatcode
     uint256 private count = elements.readUint(".count"); // get the number of leaf nodes
 
     // make three arrays the same size as the number of leaf nodes
@@ -76,31 +76,21 @@ contract MakeMerkle is Script, ScriptHelper {
     function run() public {
         console2.log("Generating Merkle Proof for %s", inputPath);
 
-        for (uint256 i = 0; i < count; i++) {
-            string[] memory input = new string[](types.length); // stringified data (address and string both as strings)
-            bytes32[] memory data = new bytes32[](types.length); // actual data as a bytes32
+        for (uint256 i = 0; i < count; ++i) {
+            string memory input;
+            bytes32 data;
 
-            for (uint256 j = 0; j < types.length; ++j) {
-                if (compareStrings(types[j], "address")) {
-                    address value = elements.readAddress(getValuesByIndex(i));
-                    // you can't immediately cast straight to 32 bytes as an address is 20 bytes so first cast to uint160 (20 bytes) cast up to uint256 which is 32 bytes and finally to bytes32
-                    data[j] = bytes32(uint256(uint160(value)));
-                    input[j] = vm.toString(value);
-                }
+            if (compareStrings(types, "address")) {
+                address value = elements.readAddress(getValuesByIndex(i));
+
+                data = bytes32(uint256(uint160(value)));
+                input = vm.toString(value);
+            } else {
+                revert();
             }
 
-            // Create the hash for the merkle tree leaf node
-            // abi encode the data array (each element is a bytes32 representation for the address and the amount)
-            // Helper from Murky (ltrim64) Returns the bytes with the first 64 bytes removed
-            // ltrim64 removes the offset and length from the encoded bytes. There is an offset because the array
-            // is declared in memory
-            // hash the encoded address and amount
-            // bytes.concat turns from bytes32 to bytes
-            // hash again because preimage attack
             leafs[i] = keccak256(bytes.concat(keccak256(ltrim64(abi.encode(data)))));
-            // Converts a string array into a JSON array string.
-            // store the corresponding values/inputs for each leaf node
-            inputs[i] = stringArrayToString(input);
+            inputs[i] = input;
         }
 
         for (uint256 i = 0; i < count; ++i) {
