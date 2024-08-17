@@ -29,7 +29,7 @@ contract MakeMerkle is Script, ScriptHelper {
     string private outputPath = "/script/target/output.json";
 
     string private elements = vm.readFile(string.concat(vm.projectRoot(), inputPath)); // get the absolute path
-    string private types = elements.readString(".types"); // get the merkle tree leaf type from json as a single string
+    string private types = elements.readString(".types"); // get the merkle tree leaf type from json as a single string using forge standard lib cheatcode
     uint256 private count = elements.readUint(".count"); // get the number of leaf nodes
 
     // make three arrays the same size as the number of leaf nodes

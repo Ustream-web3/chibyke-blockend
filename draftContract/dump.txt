@@ -1,0 +1,16 @@
+ from MakeMerkle
+ ----
+ for (uint256 i = 0; i < count; i++) {
+            string memory input; // since we only have one type
+            bytes32 data; // actual data as a bytes32
+
+            // Since `types` is now a single string, we check it directly
+            if (compareStrings(types, "address")) {
+                address value = elements.readAddress(getValuesByIndex(i));
+                // you can't immediately cast straight to 32 bytes as an address is 20 bytes so first cast to uint160 (20 bytes) cast up to uint256 which is 32 bytes and finally to bytes32
+                data = bytes32(uint256(uint160(value)));
+                input = vm.toString(value);
+            } else {
+                revert ("Unsupported type"); // handle unsupported types
+            }
+        }
