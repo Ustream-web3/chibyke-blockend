@@ -29,12 +29,11 @@ contract MakeMerkle is Script, ScriptHelper {
     string private outputPath = "/script/target/output.json";
 
     string private elements = vm.readFile(string.concat(vm.projectRoot(), inputPath)); // get the absolute path
-    string private types = elements.readString(".types"); // gets the merkle tree leaf type from json using forge standard lib cheatcode
+    string private elementType = elements.readString(".types"); // single type: "address"
     uint256 private count = elements.readUint(".count"); // get the number of leaf nodes
 
-    // make three arrays the same size as the number of leaf nodes
+    // Arrays to hold the leaf nodes and the stringified inputs
     bytes32[] private leafs = new bytes32[](count);
-
     string[] private inputs = new string[](count);
     string[] private outputs = new string[](count);
 
@@ -77,39 +76,38 @@ contract MakeMerkle is Script, ScriptHelper {
         console2.log("Generating Merkle Proof for %s", inputPath);
 
         for (uint256 i = 0; i < count; ++i) {
-            string memory input;
-            bytes32 data;
+            string memory input; // stringified data (address as string)
+            bytes32 data; // actual data as bytes32
 
-            if (compareStrings(types, "address")) {
+            if (compareStrings(elementType, "address")) {
                 address value = elements.readAddress(getValuesByIndex(i));
-
-                data = bytes32(uint256(uint160(value)));
-                input = vm.toString(value);
-            } else {
-                revert();
+                data = bytes32(uint256(uint160(value))); // Convert address to bytes32
+                input = vm.toString(value); // Convert address to string
             }
 
+            // Create the hash for the Merkle tree leaf node
             leafs[i] = keccak256(bytes.concat(keccak256(ltrim64(abi.encode(data)))));
+            // Store the stringified input (address)
             inputs[i] = input;
         }
 
         for (uint256 i = 0; i < count; ++i) {
-            // get proof gets the nodes needed for the proof & strigify (from helper lib)
+            // Get the Merkle proof and stringify
             string memory proof = bytes32ArrayToString(m.getProof(leafs, i));
-            // get the root hash and stringify
+            // Get the root hash and stringify
             string memory root = vm.toString(m.getRoot(leafs));
-            // get the specific leaf working on
+            // Get the specific leaf being processed and stringify
             string memory leaf = vm.toString(leafs[i]);
-            // get the singified input (address, amount)
+            // Get the stringified input (address)
             string memory input = inputs[i];
 
-            // generate the Json output file (tree dump)
+            // Generate the JSON output for this entry
             outputs[i] = generateJsonEntries(input, proof, root, leaf);
         }
 
-        // stringify the array of strings to a single string
+        // Stringify the array of outputs
         output = stringArrayToArrayString(outputs);
-        // write to the output file the stringified output json tree dumpus
+        // Write the output to the JSON file
         vm.writeFile(string.concat(vm.projectRoot(), outputPath), output);
 
         console2.log("DONE: The output is found at %s", outputPath);
