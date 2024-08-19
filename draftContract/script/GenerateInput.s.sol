@@ -4,12 +4,27 @@ pragma solidity ^0.8.24;
 import {Script, console2} from "forge-std/Script.sol";
 import {stdJson} from "forge-std/StdJson.sol";
 
+/**
+ * @title GenerateInput Contract for JSON File Creation
+ * @notice This contract generates a JSON file containing a whitelist of addresses and writes it to a specified path
+ * @dev This contract is designed to be used with Foundry's scripting environment. It generates a JSON object with a list of addresses and saves it as an output file
+ */
 contract GenerateInput is Script {
+    // >>--------------------->> VARIABLES
+    ///@dev The type of data being stored in the JSON file, set to "address"
     string types;
+    ///@dev The number of addresses in the whitelist
     uint256 count;
+    ///@dev The array of whitelisted addresses to be included in the JSON file
     string[] whitelist = new string[](4);
+    ///@dev The constant file path where the JSON file will be saved
     string private constant INPUT_PATH = "/script/target/input.json";
 
+    /**
+     * @notice Runs the script to generate a JSON file with whitelisted addresses
+     * @dev This function sets up the whitelist, generates the JSON, and writes it to the specified file path
+     * The script uses the Foundry's vm functionality to write to the file system
+     */
     function run() public {
         types = "address";
         whitelist[0] = "0x6CA6d1e2D5347Bfab1d91e883F1915560e09129D";
@@ -24,6 +39,11 @@ contract GenerateInput is Script {
         console2.log("DONE: The output is found at %s", INPUT_PATH);
     }
 
+    /**
+     * @notice Creates a JSON string representing the whitelist of addresses
+     * @dev This internal function converts the whitelist array into a JSON string format
+     * @return A string containing the JSON representation of the whitelist
+     */
     function _createJSON() internal view returns (string memory) {
         // Convert the count of addresses to a string
         string memory countString = vm.toString(count);
