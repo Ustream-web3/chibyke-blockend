@@ -16,6 +16,10 @@ import {ScriptHelper} from "murky/script/common/ScriptHelper.sol";
  * @title MakeMerkle
  * @author Chukwubuike Victory Chime
  *
+ * Took inspiration from:
+ * @author Ciara Nightingale
+ * @notice Cyfrin Updraft
+ *
  * Original Work by:
  * @author kootsZhin
  * @notice https://github.com/dmfxyz/murky
