@@ -14,16 +14,18 @@ contract CreatorRegistry is Ownable {
 
     // >---------------------------> STATE VARIABLES
     address private s_admin;
-    uint256 private s_creatorCount;
-    uint256 private s_suspendedCreatorCount;
-    uint256 private s_removedCreatorCount;
-    address[] private s_Creators;
-    address[] private s_suspendedCreators;
-    address[] private s_removedCreators;
 
     mapping(address => bool) private s_isCreator;
     mapping(address => bool) private s_isSuspendedCreator;
     mapping(address => bool) private s_isRemovedCreator;
+
+    address[] private s_creatorList;
+    address[] private s_suspendedCreatorList;
+    address[] private s_removedCreatorList;
+
+    uint256 private s_creatorCount;
+    uint256 private s_suspendedCreatorCount;
+    uint256 private s_removedCreatorCount;
 
     // >---------------------------> EVENTS
     event CreatorAdded(address indexed creator, address indexed adminThatAddedCreator);
@@ -66,7 +68,7 @@ contract CreatorRegistry is Ownable {
         _;
     }
 
-    // >---------------------------> CONSTRUCTOR 
+    // >---------------------------> CONSTRUCTOR
     constructor() Ownable(msg.sender) {
         s_admin = msg.sender;
         s_creatorCount = 0;
@@ -76,16 +78,17 @@ contract CreatorRegistry is Ownable {
 
     // >---------------------------> EXTERNAL FUNCTIONS
     function addCreator(address applicant) external onlyAdmin notAlreadyCreator(applicant) {
-        // add to Creators
-        s_Creators.push(applicant);
-
         // mark as Creator
         s_isCreator[applicant] = true;
 
+        // add to creator list
+        s_creatorList.push(applicant);
+
+        // increase Creator count
+        s_creatorCount++;
+
         // emit event to effect
         emit CreatorAdded(applicant, msg.sender);
-
-        s_creatorCount++;
     }
 
     /**
@@ -98,24 +101,26 @@ contract CreatorRegistry is Ownable {
         notAlreadySuspended(creator)
         notAlreadyRemoved(creator)
     {
-        // remove from Creators
-        s_Creators.pop();
+        // mark as not Creator
         s_isCreator[creator] = false;
 
-        // add to suspended Creators
-        s_suspendedCreators.push(creator);
-
-        // mark as suspended Creator
-        s_isSuspendedCreator[creator] = true;
-
-        // emit event to effect
-        emit CreatorSuspended(creator, msg.sender);
+        // remove from creator list
+        _removeFromArray(s_creatorList, creator);
 
         // decrease Creator count
         s_creatorCount--;
 
+        // mark as suspended Creator
+        s_isSuspendedCreator[creator] = true;
+
+        // add to suspended creator list
+        s_suspendedCreatorList.push(creator);
+
         // increase suspended Creator count
         s_suspendedCreatorCount++;
+
+        // emit event to effect
+        emit CreatorSuspended(creator, msg.sender);
     }
 
     /**
@@ -123,40 +128,38 @@ contract CreatorRegistry is Ownable {
      */
     function removeCreator(address creator) external onlyAdmin alreadyCreator(creator) notAlreadyRemoved(creator) {
         if (s_isSuspendedCreator[creator]) {
-            // remove from suspended Creators
-            s_suspendedCreators.pop();
+            // mark as not suspended Creator
             s_isSuspendedCreator[creator] = false;
 
-            // add to removed Creators
-            s_removedCreators.push(creator);
-
-            // mark as removed Creator
-            s_isRemovedCreator[creator] = true;
+            // remove from suspended creator list
+            _removeFromArray(s_suspendedCreatorList, creator);
 
             // decrease suspended Creators count
             s_suspendedCreatorCount--;
         } else {
-            // remove from Creators
-            s_Creators.pop();
+            // mark as not Creator
             s_isCreator[creator] = false;
 
-            // add to removed Creators
-            s_removedCreators.push(creator);
+            // remove from creator list
+            _removeFromArray(s_creatorList, creator);
 
-            // mark as removed Creator
-            s_isRemovedCreator[creator] = true;
+            // decrease Creator count
+            s_creatorCount--;
         }
 
-        // emit event to effect
-        emit CreatorRemoved(creator, msg.sender);
+        // mark as removed Creator
+        s_isRemovedCreator[creator] = true;
 
-        // decrease Creator count
-        s_creatorCount--;
+        // add to removed creator list
+        s_removedCreatorList.push(creator);
 
         // increase removed Creator count
         s_removedCreatorCount++;
+
+        // emit event to effect
+        emit CreatorRemoved(creator, msg.sender);
     }
-    
+
     function setAdmin(address newAdmin) external onlyAdmin {
         s_admin = newAdmin;
     }
@@ -176,5 +179,16 @@ contract CreatorRegistry is Ownable {
 
     function getRemovedCreatorCount() public view returns (uint256) {
         return s_removedCreatorCount;
+    }
+
+    // >---------------------------> INTERNAL FUNCTIONS
+    function _removeFromArray(address[] storage array, address element) internal {
+        for (uint256 a = 0; a < array.length; a++) {
+            if (array[a] == element) {
+                array[a] = array[array.length - 1];
+                array.pop();
+                break;
+            }
+        }
     }
 }
