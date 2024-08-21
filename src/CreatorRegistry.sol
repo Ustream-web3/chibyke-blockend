@@ -181,6 +181,18 @@ contract CreatorRegistry is Ownable {
         return s_removedCreatorCount;
     }
 
+    function getAllCreators() public view returns (address[] memory) {
+        return s_creatorList;
+    }
+
+    function getAllSuspendedCreators() public view returns (address[] memory) {
+        return s_suspendedCreatorList;
+    }
+
+    function getAllRemovedCreators() public view returns (address[] memory) {
+        return s_removedCreatorList;
+    }
+
     // >---------------------------> INTERNAL FUNCTIONS
     function _removeFromArray(address[] storage array, address element) internal {
         for (uint256 a = 0; a < array.length; a++) {
