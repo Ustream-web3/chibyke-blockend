@@ -11,17 +11,28 @@ contract CreatorRegistry is Ownable {
     error CreatorRegistry__CreatorDoesNotExist();
     error CreatorRegistry__CreatorAlreadySuspended();
     error CreatorRegistry__CreatorAlreadyRemoved();
+    error CreatorRegistry__InvalidStateTransition();
+
+    // >---------------------------> TYPES
+    enum CreatorState {
+        None,
+        Active,
+        Suspended,
+        Removed
+    }
 
     // >---------------------------> STATE VARIABLES
     address private s_admin;
 
-    mapping(address => bool) private s_isCreator;
-    mapping(address => bool) private s_isSuspendedCreator;
-    mapping(address => bool) private s_isRemovedCreator;
+    mapping(address => CreatorState) private s_creatorState;
 
     address[] private s_creatorList;
     address[] private s_suspendedCreatorList;
     address[] private s_removedCreatorList;
+
+    mapping(address => uint256) private s_creatorIndex;
+    mapping(address => uint256) private s_suspendedCreatorIndex;
+    mapping(address => uint256) private s_removedCreatorIndex;
 
     uint256 private s_creatorCount;
     uint256 private s_suspendedCreatorCount;
@@ -33,30 +44,9 @@ contract CreatorRegistry is Ownable {
     event CreatorRemoved(address indexed creator, address indexed adminThatRemovedCreator);
 
     // >---------------------------> MODIFIERS
-    modifier alreadyCreator(address creator) {
-        if (!s_isCreator[creator]) {
-            revert CreatorRegistry__CreatorDoesNotExist();
-        }
-        _;
-    }
-
-    modifier notAlreadyCreator(address applicant) {
-        if (s_isCreator[applicant]) {
-            revert CreatorRegistry__CreatorExists();
-        }
-        _;
-    }
-
-    modifier notAlreadySuspended(address creator) {
-        if (s_isSuspendedCreator[creator]) {
-            revert CreatorRegistry__CreatorAlreadySuspended();
-        }
-        _;
-    }
-
-    modifier notAlreadyRemoved(address creator) {
-        if (s_isRemovedCreator[creator]) {
-            revert CreatorRegistry__CreatorAlreadyRemoved();
+    modifier inState(address creator, CreatorState expectedState) {
+        if (s_creatorState[creator] != expectedState) {
+            revert CreatorRegistry__InvalidStateTransition();
         }
         _;
     }
@@ -77,12 +67,13 @@ contract CreatorRegistry is Ownable {
     }
 
     // >---------------------------> EXTERNAL FUNCTIONS
-    function addCreator(address applicant) external onlyAdmin notAlreadyCreator(applicant) {
+    function addCreator(address applicant) external onlyAdmin inState(applicant, CreatorState.None) {
         // mark as Creator
-        s_isCreator[applicant] = true;
+        s_creatorState[applicant] = CreatorState.Active;
 
-        // add to creator list
+        // add to creator list and track index
         s_creatorList.push(applicant);
+        s_creatorIndex[applicant] = s_creatorList.length - 1;
 
         // increase Creator count
         s_creatorCount++;
@@ -94,29 +85,21 @@ contract CreatorRegistry is Ownable {
     /**
      * @notice This function will suspend the creator with the inputted address
      */
-    function suspendCreator(address creator)
-        external
-        onlyAdmin
-        alreadyCreator(creator)
-        notAlreadySuspended(creator)
-        notAlreadyRemoved(creator)
-    {
-        // mark as not Creator
-        s_isCreator[creator] = false;
+    function suspendCreator(address creator) external onlyAdmin inState(creator, CreatorState.Active) {
+        // mark as suspended Creator
+        s_creatorState[creator] = CreatorState.Suspended;
 
         // remove from creator list
-        _removeFromArray(s_creatorList, creator);
+        _removeFromArray(s_creatorList, s_creatorIndex, creator);
 
         // decrease Creator count
         s_creatorCount--;
 
-        // mark as suspended Creator
-        s_isSuspendedCreator[creator] = true;
-
-        // add to suspended creator list
+        // add to suspended creator list and track index
         s_suspendedCreatorList.push(creator);
+        s_suspendedCreatorIndex[creator] = s_suspendedCreatorList.length - 1;
 
-        // increase suspended Creator count
+        // increase suspended creator count
         s_suspendedCreatorCount++;
 
         // emit event to effect
@@ -126,34 +109,37 @@ contract CreatorRegistry is Ownable {
     /**
      * @notice This function will remove the creator with the inputted address
      */
-    function removeCreator(address creator) external onlyAdmin alreadyCreator(creator) notAlreadyRemoved(creator) {
-        if (s_isSuspendedCreator[creator]) {
-            // mark as not suspended Creator
-            s_isSuspendedCreator[creator] = false;
+    function removeCreator(address creator) external onlyAdmin {
+        CreatorState currentState = s_creatorState[creator];
 
+        if (currentState == CreatorState.None) {
+            revert CreatorRegistry__CreatorDoesNotExist();
+        } else if (currentState == CreatorState.Removed) {
+            revert CreatorRegistry__CreatorAlreadyRemoved();
+        }
+
+        if (currentState == CreatorState.Suspended) {
             // remove from suspended creator list
-            _removeFromArray(s_suspendedCreatorList, creator);
+            _removeFromArray(s_suspendedCreatorList, s_suspendedCreatorIndex, creator);
 
-            // decrease suspended Creators count
+            // decrease suspended creator count
             s_suspendedCreatorCount--;
-        } else {
-            // mark as not Creator
-            s_isCreator[creator] = false;
-
-            // remove from creator list
-            _removeFromArray(s_creatorList, creator);
+        } else if (currentState == CreatorState.Active) {
+            // remove from Creator list
+            _removeFromArray(s_creatorList, s_creatorIndex, creator);
 
             // decrease Creator count
             s_creatorCount--;
         }
 
-        // mark as removed Creator
-        s_isRemovedCreator[creator] = true;
+        // mark as removed creator
+        s_creatorState[creator] = CreatorState.Removed;
 
-        // add to removed creator list
+        // Add to removed creator list and track index
         s_removedCreatorList.push(creator);
+        s_removedCreatorIndex[creator] = s_removedCreatorList.length - 1;
 
-        // increase removed Creator count
+        // increase removed creator count
         s_removedCreatorCount++;
 
         // emit event to effect
@@ -194,13 +180,37 @@ contract CreatorRegistry is Ownable {
     }
 
     // >---------------------------> INTERNAL FUNCTIONS
-    function _removeFromArray(address[] storage array, address element) internal {
-        for (uint256 a = 0; a < array.length; a++) {
-            if (array[a] == element) {
-                array[a] = array[array.length - 1];
-                array.pop();
-                break;
-            }
-        }
+    function _removeFromArray(
+        address[] storage array,
+        mapping(address => uint256) storage indexMapping,
+        address element
+    ) internal {
+        uint256 index = indexMapping[element];
+        address lastElement = array[array.length - 1];
+
+        // Move the last element to the deleted slot
+        array[index] = lastElement;
+        indexMapping[lastElement] = index;
+
+        // Remove the last element
+        array.pop();
+        delete indexMapping[element];
     }
+
+    // function _updateCreatorState(address creator, CreatorState newState) internal {
+    //     CreatorState currentState = s_creatorState[creator];
+
+    //     require(currentState != newState, "Cannot transition to same state!!!");
+
+    //     if (newState == CreatorState.Suspended) {
+    //         require(currentState == CreatorState.Active, "Can only suspend active creators!!!");
+    //     } else if (newState == CreatorState.Removed) {
+    //         require(
+    //             currentState == CreatorState.Active || currentState == CreatorState.Suspended,
+    //             "Can only remove active or suspended creators!!!"
+    //         );
+    //     }
+
+    //     s_creatorState[creator] = newState;
+    // } @note Is there a need for this function? SHould there ever arise a situation where a creator's state need to be updated without any of the `addCreator()` `suspendCreator()` removeCreator()` functions being called?
 }
