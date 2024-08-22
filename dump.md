@@ -21,3 +21,6 @@
         } 
         // @note Is there a need for this function? SHould there ever arise a situation where a creator's state need to be updated without any of the `addCreator()` `suspendCreator()` removeCreator()` functions being called?
     ```
+
+- @note >>---> Can I make an array of addresses that will be the `s_admin` in the [`CreatorRegistry`](./src/CreatorRegistry.sol) contract? Should try it later
+
