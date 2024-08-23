@@ -161,11 +161,9 @@ contract UserRegistry is Ownable {
         uint256 index = indexMapping[element];
         address lastElement = array[array.length - 1];
 
-        // Move the last element to the deleted slot
         array[index] = lastElement;
         indexMapping[lastElement] = index;
 
-        // Remove the last element
         array.pop();
         delete indexMapping[element];
     }
