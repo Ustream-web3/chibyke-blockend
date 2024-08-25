@@ -9,6 +9,7 @@ contract UserRegistry is Ownable {
     error UserRegistry__InvalidStateTransition();
     error UserRegistry__NotAdmin();
     error UserRegistry__UserHasBeenRemoved();
+    error UserRegistry__CannotBeZeroAddress();
 
     // >---------------------------> TYPE DECLARATIONS
     enum UserState {
@@ -39,6 +40,8 @@ contract UserRegistry is Ownable {
     event BecameUser(address indexed user);
     event UserSuspended(address indexed suspendedUser, address indexed adminWhoSuspendedUser);
     event UserRemoved(address indexed removedUser, address indexed adminWhoRemovedUser);
+    event UserRestored(address indexed user, address indexed adminWhoRestoredUser);
+    event AdminChanged(address indexed oldAdmin, address indexed newAdmin);
 
     // >---------------------------> MODIFIERS
     modifier inState(address user, UserState expectedState) {
@@ -51,6 +54,13 @@ contract UserRegistry is Ownable {
     modifier onlyAdmin() {
         if (msg.sender != s_admin) {
             revert UserRegistry__NotAdmin();
+        }
+        _;
+    }
+
+    modifier notZeroAddr(address addr) {
+        if (addr == address(0)) {
+            revert UserRegistry__CannotBeZeroAddress();
         }
         _;
     }
@@ -75,7 +85,7 @@ contract UserRegistry is Ownable {
         emit BecameUser(msg.sender);
     }
 
-    function suspendUser(address user) external onlyAdmin inState(user, UserState.Active) {
+    function suspendUser(address user) external onlyAdmin notZeroAddr(user) inState(user, UserState.Active) {
         s_userState[user] = UserState.Suspended;
 
         _removeFromArray(s_userList, s_userIndex, user);
@@ -90,7 +100,7 @@ contract UserRegistry is Ownable {
         emit UserSuspended(user, msg.sender);
     }
 
-    function removeUser(address user) external onlyAdmin {
+    function removeUser(address user) external onlyAdmin notZeroAddr(user) {
         UserState currentState = s_userState[user];
 
         if (currentState == UserState.None) {
@@ -119,8 +129,26 @@ contract UserRegistry is Ownable {
         emit UserRemoved(user, msg.sender);
     }
 
-    function setAdmin(address newAdmin) external onlyAdmin {
+    function restoreUser(address user) external onlyAdmin notZeroAddr(user) inState(user, UserState.Suspended) {
+        s_userState[user] = UserState.Active;
+
+        _removeFromArray(s_suspendedUserList, s_suspendedUserIndex, user);
+
+        s_suspendedUserCount--;
+
+        s_userList.push(user);
+        s_userIndex[user] = s_userList.length - 1;
+
+        s_userCount++;
+
+        emit UserRestored(user, msg.sender);
+    }
+
+    function setAdmin(address newAdmin) external onlyAdmin notZeroAddr(newAdmin) {
+        address oldAdmin = s_admin;
         s_admin = newAdmin;
+
+        emit AdminChanged(oldAdmin, newAdmin);
     }
 
     // >---------------------------> PUBLIC VIEW FUNCTIONS
