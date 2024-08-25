@@ -24,3 +24,63 @@
 
 - @note >>---> Can I make an array of addresses that will be the `s_admin` in the [`CreatorRegistry`](./src/CreatorRegistry.sol) contract? Should try it later
 
+### 25/08/2024
+
+- @note >>---> Below are functions which can be used to `suspend()` or `remove()` by batch. I will bring it with up during talsk with the team
+
+    ```solidity
+        function batchSuspendUsers(address[] calldata users) external onlyAdmin {
+            for (uint256 i = 0; i < users.length; i++) {
+                address user = users[i];
+                
+                // Check if the user can be suspended
+                if (s_userState[user] == UserState.Active) {
+                    s_userState[user] = UserState.Suspended;
+
+                    // Remove from active list
+                    _removeFromArray(s_userList, s_userIndex, user);
+                    s_userCount--;
+
+                    // Add to suspended list
+                    s_suspendedUserList.push(user);
+                    s_suspendedUserIndex[user] = s_suspendedUserList.length - 1;
+
+                    s_suspendedUserCount++;
+
+                    emit UserSuspended(user, msg.sender);
+                }
+            }
+        }
+    ```
+
+    ```solidity
+        function batchRemoveUsers(address[] calldata users) external onlyAdmin {
+            for (uint256 i = 0; i < users.length; i++) {
+                address user = users[i];
+                UserState currentState = s_userState[user];
+
+                // Skip if the user does not exist or is already removed
+                if (currentState == UserState.None || currentState == UserState.Removed) {
+                    continue;
+                }
+
+                // Handle state transition
+                if (currentState == UserState.Suspended) {
+                    _removeFromArray(s_suspendedUserList, s_suspendedUserIndex, user);
+                    s_suspendedUserCount--;
+                } else if (currentState == UserState.Active) {
+                    _removeFromArray(s_userList, s_userIndex, user);
+                    s_userCount--;
+                }
+
+                // Mark user as removed and add to the removed list
+                s_userState[user] = UserState.Removed;
+                s_removedUserList.push(user);
+                s_removedUserIndex[user] = s_removedUserList.length - 1;
+                s_removedUserCount++;
+
+                emit UserRemoved(user, msg.sender);
+            }
+        }
+    ```
+
