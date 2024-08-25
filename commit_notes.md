@@ -491,3 +491,7 @@
   - Pfp image will be an off-chain selection, the smart contract will not keep track of this
   - There will be functions to suspend and remove users by the admin
   - And some more...
+
+### 25/08/2024
+
+- There should be a `leaveRegistry()` function that `users` can call to leave the protocol of their own accord.... check [`dump.md`](./dump.md) for dump note marked `###25/08/2024 1.1` 
